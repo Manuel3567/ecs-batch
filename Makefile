@@ -21,3 +21,6 @@ ifndef AWS_ACCOUNT_ID
 endif
 	docker build -t $(ECR_REPO):latest $(BUILD_CONTEXT)
 	docker push $(ECR_REPO):latest
+
+deploy:
+	aws cloudformation deploy --stack-name "my-ecs" --template infra/ecs.yaml
