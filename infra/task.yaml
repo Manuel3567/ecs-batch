@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  ApplicationName:
+    Type: String
+    Default: "application"
+  Image:
+    Type: String
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Select the VPC that contains the subnet
+
+Resources:
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+        - Name: !Ref ApplicationName
+          Image: !Ref Image
+          Cpu: 1024
+          Memory: 2048
+          Essential: true
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              mode: non-blocking
+              max-buffer-size: 25m
+              awslogs-group: !Sub "/ecs/${ApplicationName}"
+              awslogs-region: !Ref AWS::Region
+              awslogs-create-group: "true"
+              awslogs-stream-prefix: !Ref ApplicationName
+
+      ExecutionRoleArn: !GetAtt TaskRole.Arn
+      RequiresCompatibilities:
+        - FARGATE
+        - EC2
+      NetworkMode: awsvpc # required by Fargate
+      Cpu: 1024
+      Memory: 2048
+  
+  TaskSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+
+  TaskRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
+Outputs:
+  TaskSecurityGroupId:
+    Description: Security Group ID for the ECS task
+    Value: !Ref TaskSecurityGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-TaskSecurityGroupId"
+
+  TaskDefinitionArn:
+    Description: ARN of the ECS Task Definition
+    Value: !Ref TaskDefinition
+    Export:
+      Name: !Sub "${AWS::StackName}-TaskDefinitionArn"

@@ -1,10 +1,57 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: ECS cluster
 
+Parameters:
+  ApplicationName:
+    Type: String
+    Default: "application"
+
+
 Resources:
-  MyRepository: 
+  Repository: 
     Type: AWS::ECR::Repository
     Properties: 
-      RepositoryName: "application"
+      RepositoryName: !Ref ApplicationName
       EmptyOnDelete: true
       ImageTagMutability: MUTABLE
+
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      CapacityProviders: 
+        - FARGATE_SPOT
+        - FARGATE
+      ClusterName: !Sub ${ApplicationName}-cluster
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Base: 1
+        - CapacityProvider: FARGATE_SPOT
+          Weight: 1
+
+Outputs:
+  ECSClusterName:
+    Description: Name of the ECS Cluster
+    Value: !Sub ${ApplicationName}-cluster
+    Export:
+      Name: !Sub "${AWS::StackName}-ClusterName"     
+
+
+
+  # BatchComputeEnvironment:
+  #   Type: AWS::Batch::ComputeEnvironment
+  #   Properties:
+  #     ComputeEnvironmentName: String
+  #     ComputeResources: 
+  #       ComputeResources
+  #     Context: String
+  #     EksConfiguration: 
+  #       EksConfiguration
+  #     ReplaceComputeEnvironment: Boolean
+  #     ServiceRole: String
+  #     State: String
+  #     Tags: 
+  #       Key: Value
+  #     Type: String
+  #     UnmanagedvCpus: Integer
+  #     UpdatePolicy: 
+  #       UpdatePolicy
